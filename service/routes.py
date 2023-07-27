@@ -42,17 +42,20 @@ def index():
 def create_accounts():
     """
     Creates an Account
-    This endpoint will create an Account based the data in the body that is posted
+    This endpoint will create an Account based the data in the body that
+    is posted
     """
     app.logger.info("Request to create an Account")
     check_content_type("application/json")
+    check_input_data()
     account = Account()
     account.deserialize(request.get_json())
     account.create()
     message = account.serialize()
-    # Uncomment once get_accounts has been implemented
-    # location_url = url_for("get_accounts", account_id=account.id, _external=True)
-    location_url = "/"  # Remove once get_accounts has been implemented
+    location_url = url_for(
+        "get_accounts",
+        account_id=account.id,
+        _external=True)
     return make_response(
         jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
     )
@@ -60,15 +63,43 @@ def create_accounts():
 ######################################################################
 # LIST ALL ACCOUNTS
 ######################################################################
-
-# ... place you code here to LIST accounts ...
+@app.route("/accounts", methods=["GET"])
+def get_accounts():
+    """
+    List all the accounts
+    This endpoint will display all the existing accounts
+    """
+    app.logger.info("Request to list all the accounts")
+    location_url = "/"
+    accounts = Account.query.all()
+    return make_response(
+        jsonify([account.serialize() for account in accounts]),
+        status.HTTP_200_OK,
+        {"Location": location_url}
+    )
 
 
 ######################################################################
 # READ AN ACCOUNT
 ######################################################################
-
-# ... place you code here to READ an account ...
+@app.route("/accounts/<int:id>", methods=["GET"])
+def get_account(id):
+    """
+    Read an account
+    This endpoint will display the details of an account
+    """
+    app.logger.info("Request to read an account")
+    location_url = url_for(
+        "get_accounts",
+        account_id=id,
+        _external=True
+    )
+    account = check_account(id)
+    return make_response(
+        jsonify(account.serialize()),
+        status.HTTP_200_OK,
+        {"Location": location_url}
+    )
 
 
 ######################################################################
@@ -100,3 +131,40 @@ def check_content_type(media_type):
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         f"Content-Type must be {media_type}",
     )
+
+
+def check_input_data():
+    """Checks that the input data is correct"""
+    data = request.get_json()
+    if not data:
+        app.logger.error("Invalid data!", data)
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            "Data is not valid!",
+        )
+    for item in ['name', 'email']:
+        if item not in data:
+            app.logger.error("Missing information!", item)
+            abort(
+                status.HTTP_400_BAD_REQUEST,
+                f"Data is not valid! `{item}` is missing.",
+            )
+
+
+def check_account(id):
+    """ Check if account exists """
+    if not id:
+        app.logger.error("Parameter `id` missing!")
+        abort(
+            status.HTTP_400_BAD_REQUEST,
+            "Parameter `id` is required!",
+        )
+    account = Account.find(by_id=id)
+    # Account.query.filter_by(id=id).first()
+    if not account:
+        app.logger.error("Account not found!", id)
+        abort(
+            status.HTTP_404_NOT_FOUND,
+            f"Account with id `{id}` does not exist!",
+        )
+    return account
