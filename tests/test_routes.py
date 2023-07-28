@@ -16,7 +16,7 @@ from service import talisman
 
 
 DATABASE_URI = os.getenv(
-    "DATABASE_URI", "postgresql://postgres:postgres@localhost:5432/postgres"
+    "DATABASE_URI", "postgresql://postgres:pgs3cr3t@localhost:5432/postgres"
 )
 
 BASE_URL = "/accounts"
